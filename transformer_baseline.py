@@ -147,7 +147,7 @@ class TransformerLM(nn.Module):
                 targets[:, 1:T].contiguous().view(-1),
                 ignore_index=-1,
             )
-            out.update({"loss": ce, "ce": ce, "energy": torch.tensor(0.0)})
+            out.update({"loss": ce, "ce": ce, "energy": ce.new_tensor(0.0)})
 
         return out
 

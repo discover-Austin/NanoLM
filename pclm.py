@@ -324,7 +324,7 @@ class PCLM(nn.Module):
 
         stats: PCLMStats = {
             "energy":         torch.stack(energy_terms).mean(),
-            "mean_precision": torch.tensor(sum(float(p) for p in precision_log) / max(len(precision_log), 1)),
+            "mean_precision": torch.stack(precision_log).mean(),
             "n_energy_terms": len(energy_terms),
         }
         return latents, stats
