@@ -21,7 +21,29 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, TypedDict
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# OUTPUT TYPES
+# ══════════════════════════════════════════════════════════════════════════════
+
+class PCLMStats(TypedDict):
+    """Metrics produced during PC inference (always present in forward output)."""
+    energy: torch.Tensor
+    mean_precision: torch.Tensor
+    n_energy_terms: int
+
+
+class _PCLMOutputRequired(PCLMStats):
+    logits: torch.Tensor
+
+
+class PCLMOutput(_PCLMOutputRequired, total=False):
+    """Full forward() return type. loss/ce/latents are present only when requested."""
+    loss: torch.Tensor
+    ce: torch.Tensor
+    latents: List[torch.Tensor]
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -253,7 +275,7 @@ class PCLM(nn.Module):
     def _inference(
         self,
         latents: List[torch.Tensor]
-    ) -> Tuple[List[torch.Tensor], Dict[str, torch.Tensor]]:
+    ) -> Tuple[List[torch.Tensor], PCLMStats]:
         """
         K iterations of predictive coding dynamics.
 
@@ -300,10 +322,10 @@ class PCLM(nn.Module):
             # ── Top prior: keep top latent bounded ────────────────────────
             latents[-1] = self.top_norm(latents[-1])
 
-        stats = {
-            "energy":          torch.stack(energy_terms).mean(),
-            "mean_precision":  torch.tensor(sum(float(p) for p in precision_log) / max(len(precision_log), 1)),
-            "n_energy_terms":  len(energy_terms),
+        stats: PCLMStats = {
+            "energy":         torch.stack(energy_terms).mean(),
+            "mean_precision": torch.tensor(sum(float(p) for p in precision_log) / max(len(precision_log), 1)),
+            "n_energy_terms": len(energy_terms),
         }
         return latents, stats
 
@@ -314,7 +336,7 @@ class PCLM(nn.Module):
         input_ids:  torch.Tensor,
         targets:    Optional[torch.Tensor] = None,
         return_latents: bool = False,
-    ) -> Dict[str, torch.Tensor]:
+    ) -> PCLMOutput:
         """
         input_ids: [B, T]
         targets:   [B, T] (for loss, pass same as input_ids shifted by 1 internally)
@@ -346,7 +368,7 @@ class PCLM(nn.Module):
         # Alternative: project x_top down — try in ablations.
         logits = self.lm_head(latents[0])                  # [B, T, V]
 
-        out = {"logits": logits, **stats}
+        out: PCLMOutput = {"logits": logits, **stats}
 
         if targets is not None:
             # Shift: predict token t+1 from token t

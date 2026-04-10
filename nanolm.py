@@ -14,6 +14,7 @@ import json
 import math
 import time
 import os
+from enum import IntEnum
 from typing import Optional, List, Tuple, Dict
 
 
@@ -78,14 +79,9 @@ class Embedding(Module):
     
     def backward(self, dout: np.ndarray):
         # dout: (B, T, d)
-        np.add.at(self.W.data if self.W.grad is None else self.W.grad, 
-                  self._idx, dout)
         if self.W.grad is None:
-            g = np.zeros_like(self.W.data)
-            np.add.at(g, self._idx, dout)
-            self.W.grad = g
-        else:
-            np.add.at(self.W.grad, self._idx, dout)
+            self.W.grad = np.zeros_like(self.W.data)
+        np.add.at(self.W.grad, self._idx, dout)
     
     def parameters(self):
         return [self.W]
@@ -529,8 +525,21 @@ class NanoLM(Module):
 # BPE TOKENIZER
 # ══════════════════════════════════════════════════════════════════════════════
 
+class SpecialToken(IntEnum):
+    """Enumeration of reserved special token IDs."""
+    PAD = 0
+    UNK = 1
+    BOS = 2
+    EOS = 3
+
+
 class BPETokenizer:
-    SPECIAL = {'<pad>': 0, '<unk>': 1, '<bos>': 2, '<eos>': 3}
+    SPECIAL: Dict[str, int] = {
+        '<pad>': SpecialToken.PAD,
+        '<unk>': SpecialToken.UNK,
+        '<bos>': SpecialToken.BOS,
+        '<eos>': SpecialToken.EOS,
+    }
     
     def __init__(self):
         self.vocab: Dict[str, int] = {}

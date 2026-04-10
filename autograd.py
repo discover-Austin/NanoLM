@@ -5,7 +5,11 @@ Every gradient computed by hand through the computational graph.
 """
 
 import numpy as np
-from typing import Optional, Tuple, List, Callable
+from typing import Optional, Tuple, List, Callable, Union
+
+# Convenient alias so signatures read as intent, not implementation detail.
+NDArray = np.ndarray
+Scalar = Union[int, float]
 
 class Tensor:
     """
@@ -13,13 +17,14 @@ class Tensor:
     Wraps NumPy arrays with automatic differentiation.
     """
     
-    def __init__(self, data, requires_grad: bool = False, name: str = ""):
+    def __init__(self, data: Union[NDArray, 'Tensor', Scalar, list],
+                 requires_grad: bool = False, name: str = ""):
         if isinstance(data, Tensor):
             data = data.data
-        self.data = np.array(data, dtype=np.float32)
+        self.data: NDArray = np.array(data, dtype=np.float32)
         self.requires_grad = requires_grad
-        self.grad: Optional[np.ndarray] = None
-        self._backward: Callable = lambda: None
+        self.grad: Optional[NDArray] = None
+        self._backward: Callable[[], None] = lambda: None
         self._prev: List['Tensor'] = []
         self.name = name
     
@@ -36,7 +41,7 @@ class Tensor:
     def zero_grad(self):
         self.grad = None
     
-    def backward(self, grad: Optional[np.ndarray] = None):
+    def backward(self, grad: Optional[NDArray] = None) -> None:
         if grad is None:
             assert self.data.size == 1, "backward() without grad only for scalars"
             grad = np.ones_like(self.data)
@@ -373,7 +378,7 @@ class Tensor:
 
 # ─── Utilities ─────────────────────────────────────────────────────────────────
 
-def _unbroadcast(grad: np.ndarray, shape: tuple) -> np.ndarray:
+def _unbroadcast(grad: NDArray, shape: tuple) -> NDArray:
     """Sum gradient over broadcasted dimensions to restore original shape."""
     if grad.shape == shape:
         return grad

@@ -17,9 +17,30 @@ import torch
 import torch.nn as nn
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import CosineAnnealingLR
+from typing import List, TypedDict
 
 from pclm import PCLM, PCLMConfig
 from transformer_baseline import TransformerLM, TransformerConfig
+
+
+class _TrainingHistoryRequired(TypedDict):
+    name: str
+    step: List[int]
+    loss: List[float]
+    ce: List[float]
+    ppl: List[float]
+    energy: List[float]
+    precision: List[float]
+    tok_sec: List[float]
+
+
+class TrainingHistory(_TrainingHistoryRequired, total=False):
+    """Accumulates per-step metrics during training; summary fields added at end."""
+    total_time_s: float
+    total_tokens: int
+    final_loss: float
+    final_ppl: float
+    avg_tok_sec: float
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -184,7 +205,7 @@ def train_model(
     lr:         float = 3e-4,
     device:     str  = "cpu",
     log_every:  int  = 25,
-) -> dict:
+) -> TrainingHistory:
 
     model = model.to(device)
     model.train()
@@ -193,7 +214,7 @@ def train_model(
     opt       = AdamW(model.parameters(), lr=lr, weight_decay=0.1, betas=(0.9, 0.95))
     scheduler = CosineAnnealingLR(opt, T_max=steps, eta_min=lr * 0.1)
 
-    history = {
+    history: TrainingHistory = {
         "name":      name,
         "step":      [],
         "loss":      [],

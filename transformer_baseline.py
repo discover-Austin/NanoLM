@@ -16,7 +16,18 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from dataclasses import dataclass
-from typing import Dict, Optional
+from typing import Dict, Optional, TypedDict
+
+
+class _TransformerOutputRequired(TypedDict):
+    logits: torch.Tensor
+
+
+class TransformerOutput(_TransformerOutputRequired, total=False):
+    """Return type of TransformerLM.forward(). loss/ce/energy present only when targets given."""
+    loss: torch.Tensor
+    ce: torch.Tensor
+    energy: torch.Tensor
 
 
 @dataclass
@@ -118,7 +129,7 @@ class TransformerLM(nn.Module):
         self,
         input_ids: torch.Tensor,
         targets:   Optional[torch.Tensor] = None,
-    ) -> Dict[str, torch.Tensor]:
+    ) -> TransformerOutput:
         B, T = input_ids.shape
         pos  = torch.arange(T, device=input_ids.device).unsqueeze(0)
 
@@ -128,7 +139,7 @@ class TransformerLM(nn.Module):
         x = self.ln_f(x)
         logits = self.lm_head(x)
 
-        out = {"logits": logits}
+        out: TransformerOutput = {"logits": logits}
         if targets is not None:
             T = logits.shape[1]
             ce = F.cross_entropy(
