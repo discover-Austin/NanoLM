@@ -2,21 +2,15 @@
 
 **A complete LLaMA-3 architecture transformer in 840K parameters. Built entirely in NumPy. No PyTorch. No TensorFlow. Just math.**
 
----
+NanoLM is a from-scratch implementation of a modern large language model — the same architecture powering LLaMA-3 — built with nothing but NumPy. Every matrix multiply, every gradient, every optimization step is written by hand. You can read every line and know exactly what a transformer *is*.
 
-Most people use transformers. Almost nobody understands what's actually happening inside them.
-
-NanoLM is a from-scratch implementation of a modern large language model — the same architecture powering LLaMA-3 — built with nothing but NumPy. Every matrix multiply, every gradient, every optimization step is written by hand and documented. You can read every line and know exactly what a transformer *is*.
-
-This isn't a toy. It's the real architecture: RoPE, RMSNorm, SwiGLU, Grouped Query Attention, BPE tokenization, AdamW with warmup and cosine decay. The only difference between this and a frontier model is scale.
+The real architecture: RoPE, RMSNorm, SwiGLU, Grouped Query Attention, BPE tokenization, AdamW with warmup and cosine decay. The only difference between this and a frontier model is scale.
 
 ## Why This Exists
 
-Frameworks hide the math. That's useful for production — and terrible for understanding.
+Frameworks hide the math. That's useful for production — but obscures understanding.
 
-I wanted to know what a transformer actually computes. Not the hand-wavy blog post version. The actual tensor operations, the actual gradient flow, the actual reason RoPE works. So I built one where every operation is visible, traceable, and documented.
-
-If you want to *use* a transformer, use PyTorch. If you want to *understand* one, read this.
+This is a transformer where every operation is visible, traceable, and documented: the actual tensor operations, the actual gradient flow, the actual reason RoPE works. Use PyTorch to deploy transformers; use this to understand them.
 
 ## Architecture
 
@@ -103,13 +97,13 @@ Epoch 3/6  loss=2.847  ppl=17.2
 ## Design Decisions
 
 **Why NumPy and not a framework?**
-Frameworks fuse operations into opaque CUDA kernels. You call `nn.MultiheadAttention` and get an answer. You don't see the reshape, the mask application, the softmax stability trick, the dropout pattern, the gradient checkpointing. Here, you see all of it.
+Frameworks fuse operations into opaque CUDA kernels. You call `nn.MultiheadAttention` and get an answer — without seeing the reshape, the mask application, the softmax stability trick, the dropout pattern, or the gradient checkpointing. Here, you see all of it.
 
 **Why analytical gradients instead of autograd?**
-An autograd engine (included in `autograd.py` for reference) builds a computation graph and walks it backward. That's elegant but adds abstraction. The main implementation computes every gradient by hand — the same thing production ML frameworks do internally with their fused kernels. Reading these gradients teaches you what backprop *actually computes*.
+An autograd engine (included in `autograd.py` for reference) builds a computation graph and walks it backward. That's elegant but adds abstraction. The main implementation computes every gradient by hand — the same thing production ML frameworks do internally with their fused kernels.
 
 **Why 840K parameters?**
-Small enough to train on a CPU in minutes. Large enough to learn real linguistic patterns and demonstrate every architectural feature at full fidelity. This is the minimum viable scale where the architecture matters more than memorization.
+Small enough to train on a CPU in minutes. Large enough to learn real linguistic patterns and demonstrate every architectural feature at full fidelity.
 
 ## Performance
 
@@ -139,9 +133,7 @@ NanoLM differs in three ways:
 
 ## About
 
-Built by a mobile mechanic and independent AI researcher in Indianapolis who wanted to understand what's actually inside these systems instead of just using them.
-
-If this helped you understand transformers, drop a ⭐.
+Built by an independent AI researcher in Indianapolis.
 
 ## License
 
